@@ -3,6 +3,7 @@
  * ระบบบริหารจัดการการยืม การอนุมัติ การส่งมอบ และการรับคืนอุปกรณ์การแพทย์สำหรับผู้ป่วย
  * อำเภอดอนพุด จังหวัดสระบุรี
  * ฐานข้อมูล: Firebase Firestore (Project: upakorn-b68e3)
+ * ผู้ดูแลระบบสูงสุด (Super Admin): UID qhn0gWsCoAoQkCjfTGEA
  */
 
 import React, { useState, useEffect } from 'react';
@@ -10,13 +11,16 @@ import {
   MedicalEquipment,
   LoanRecord,
   AuditLog,
+  AdminRecord,
   AppUser,
 } from './types';
 import {
   subscribeToEquipment,
   subscribeToLoans,
   subscribeToAuditLogs,
+  subscribeToAdmins,
   seedInitialEquipmentIfEmpty,
+  SUPER_ADMIN_UID,
 } from './services/dbService';
 import { testConnection } from './firebase';
 import { Header } from './components/Header';
@@ -24,6 +28,7 @@ import { DashboardView } from './components/DashboardView';
 import { LoanManagement } from './components/LoanManagement';
 import { EquipmentManagement } from './components/EquipmentManagement';
 import { AuditLogView } from './components/AuditLogView';
+import { AdminManagement } from './components/AdminManagement';
 import { LoanDetailModal } from './components/LoanDetailModal';
 import { LoanAgreementPrint } from './components/LoanAgreementPrint';
 import { NewLoanModal } from './components/NewLoanModal';
@@ -35,24 +40,27 @@ import {
   PlusCircle,
   Database,
   ShieldCheck,
-  Heart,
+  Crown,
   Phone,
 } from 'lucide-react';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<
-    'overview' | 'loans' | 'equipment' | 'new_loan' | 'audit'
+    'overview' | 'loans' | 'equipment' | 'new_loan' | 'audit' | 'admin'
   >('overview');
 
   const [equipment, setEquipment] = useState<MedicalEquipment[]>([]);
   const [loans, setLoans] = useState<LoanRecord[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [admins, setAdmins] = useState<AdminRecord[]>([]);
 
-  // Current session user
+  // Current session user initialized with Super Administrator credentials
   const [currentUser, setCurrentUser] = useState<AppUser>({
-    role: 'staff',
-    name: 'พว. นฤมล ศรีสวัสดิ์',
-    department: 'งานบริการปฐมภูมิ รพ.ดอนพุด',
+    uid: SUPER_ADMIN_UID,
+    role: 'super_admin',
+    name: 'ผู้ดูแลระบบ อ.ดอนพุด (Super Admin)',
+    department: 'ศูนย์ประสานงานเทคโนโลยีสารสนเทศ อ.ดอนพุด',
+    isSuperAdmin: true,
   });
 
   // Modal states
@@ -66,18 +74,20 @@ export default function App() {
     // 1. Test server connection
     testConnection();
 
-    // 2. Seed initial equipment if database is new
+    // 2. Seed initial equipment and super admin in Firestore
     seedInitialEquipmentIfEmpty();
 
     // 3. Real-time subscriptions
     const unsubEquip = subscribeToEquipment((items) => setEquipment(items));
     const unsubLoans = subscribeToLoans((items) => setLoans(items));
     const unsubLogs = subscribeToAuditLogs((items) => setAuditLogs(items));
+    const unsubAdmins = subscribeToAdmins((items) => setAdmins(items));
 
     return () => {
       unsubEquip();
       unsubLoans();
       unsubLogs();
+      unsubAdmins();
     };
   }, []);
 
@@ -137,6 +147,16 @@ export default function App() {
         )}
 
         {activeTab === 'audit' && <AuditLogView logs={auditLogs} />}
+
+        {activeTab === 'admin' && (
+          <AdminManagement
+            admins={admins}
+            currentUser={currentUser}
+            onSetCurrentUser={setCurrentUser}
+            equipment={equipment}
+            loans={loans}
+          />
+        )}
       </main>
 
       {/* Mobile Bottom Navigation Bar */}
@@ -190,15 +210,15 @@ export default function App() {
           </button>
 
           <button
-            onClick={() => setActiveTab('audit')}
+            onClick={() => setActiveTab('admin')}
             className={`flex flex-col items-center py-1 px-2 text-[10px] font-medium transition ${
-              activeTab === 'audit'
-                ? 'text-teal-700 font-semibold'
+              activeTab === 'admin'
+                ? 'text-amber-700 font-bold'
                 : 'text-slate-500 hover:text-slate-800'
             }`}
           >
-            <Activity className="w-5 h-5 mb-0.5" />
-            <span>PDPA</span>
+            <Crown className="w-5 h-5 mb-0.5 text-amber-500" />
+            <span>แอดมิน</span>
           </button>
         </div>
       </nav>
@@ -220,13 +240,17 @@ export default function App() {
               <Database className="w-3.5 h-3.5" />
               Firebase Project: upakorn-b68e3
             </span>
+            <span className="inline-flex items-center gap-1 text-amber-700 font-medium bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+              <Crown className="w-3 h-3 text-amber-600" />
+              Admin UID: {SUPER_ADMIN_UID}
+            </span>
             <span className="inline-flex items-center gap-1 text-emerald-700 font-medium">
               <ShieldCheck className="w-3.5 h-3.5" />
               มาตรฐาน PDPA ๒๕๖๒
             </span>
             <span className="inline-flex items-center gap-1 text-slate-600">
               <Phone className="w-3 h-3 text-slate-400" />
-              ติดต่อศูนย์ฯ โทร 036-395-xxx
+              โทร 036-395-xxx
             </span>
           </div>
         </div>

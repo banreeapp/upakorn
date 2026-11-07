@@ -2,6 +2,7 @@ import {
   collection,
   doc,
   getDocs,
+  getDoc,
   setDoc,
   updateDoc,
   deleteDoc,
@@ -9,12 +10,22 @@ import {
   orderBy,
   onSnapshot,
 } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from '../firebase';
-import { MedicalEquipment, LoanRecord, AuditLog } from '../types';
+import {
+  GoogleAuthProvider,
+  signInWithPopup,
+  signOut,
+  onAuthStateChanged,
+  User as FirebaseUser,
+} from 'firebase/auth';
+import { db, auth, handleFirestoreError, OperationType } from '../firebase';
+import { MedicalEquipment, LoanRecord, AuditLog, AdminRecord } from '../types';
+
+export const SUPER_ADMIN_UID = 'qhn0gWsCoAoQkCjfTGEA';
 
 const EQUIPMENT_COL = 'equipment';
 const LOANS_COL = 'loans';
 const LOGS_COL = 'auditLogs';
+const ADMINS_COL = 'admins';
 
 // Initial sample equipment for Don Phut District
 export const DEFAULT_EQUIPMENT: Omit<MedicalEquipment, 'id'>[] = [
@@ -164,9 +175,10 @@ export const DEFAULT_EQUIPMENT: Omit<MedicalEquipment, 'id'>[] = [
   },
 ];
 
-// Helper to seed initial equipment if empty
+// Helper to seed initial equipment and super admin if empty
 export async function seedInitialEquipmentIfEmpty(): Promise<void> {
   try {
+    // 1. Seed equipment if empty
     const snap = await getDocs(collection(db, EQUIPMENT_COL));
     if (snap.empty) {
       console.log('Seeding initial equipment for Don Phut District...');
@@ -184,9 +196,90 @@ export async function seedInitialEquipmentIfEmpty(): Promise<void> {
         timestamp: new Date().toISOString(),
       });
     }
+
+    // 2. Ensure Super Administrator document exists for UID qhn0gWsCoAoQkCjfTGEA
+    try {
+      const adminDocRef = doc(db, ADMINS_COL, SUPER_ADMIN_UID);
+      const adminSnap = await getDoc(adminDocRef);
+      if (!adminSnap.exists()) {
+        await setDoc(adminDocRef, {
+          uid: SUPER_ADMIN_UID,
+          name: 'ผู้ดูแลระบบสูงสุด (Super Admin)',
+          role: 'super_admin',
+          assignedAt: new Date().toISOString(),
+        });
+        console.log(`Configured Super Admin document for UID: ${SUPER_ADMIN_UID}`);
+      }
+    } catch (e) {
+      console.warn('Note on admin doc setup:', e);
+    }
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, EQUIPMENT_COL);
   }
+}
+
+// Subscribe to real-time admins list
+export function subscribeToAdmins(callback: (admins: AdminRecord[]) => void) {
+  const q = query(collection(db, ADMINS_COL));
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const items: AdminRecord[] = snapshot.docs.map((d) => ({
+        uid: d.id,
+        ...(d.data() as Omit<AdminRecord, 'uid'>),
+      }));
+      callback(items);
+    },
+    (error) => {
+      handleFirestoreError(error, OperationType.GET, ADMINS_COL);
+    }
+  );
+}
+
+// Add an administrator
+export async function addAdminUser(uid: string, name: string, actorName: string) {
+  try {
+    const adminRef = doc(db, ADMINS_COL, uid.trim());
+    const now = new Date().toISOString();
+    await setDoc(adminRef, {
+      uid: uid.trim(),
+      name: name.trim(),
+      role: 'admin',
+      assignedAt: now,
+    });
+    await addAuditLog(
+      'เพิ่มผู้ดูแลระบบ',
+      `แต่งตั้ง UID: ${uid} (${name}) เป็นผู้ดูแลระบบ`,
+      actorName
+    );
+  } catch (error) {
+    handleFirestoreError(error, OperationType.CREATE, `${ADMINS_COL}/${uid}`);
+  }
+}
+
+// Remove an administrator
+export async function removeAdminUser(uid: string, actorName: string) {
+  if (uid === SUPER_ADMIN_UID) {
+    throw new Error('ไม่สามารถลบ Super Admin สูงสุดของระบบได้');
+  }
+  try {
+    const adminRef = doc(db, ADMINS_COL, uid);
+    await deleteDoc(adminRef);
+    await addAuditLog('ถอนสิทธิ์ผู้ดูแลระบบ', `ยกเลิกสิทธิ์ UID: ${uid}`, actorName);
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, `${ADMINS_COL}/${uid}`);
+  }
+}
+
+// Google Auth sign in
+export async function loginWithGoogle() {
+  const provider = new GoogleAuthProvider();
+  return await signInWithPopup(auth, provider);
+}
+
+// Sign out
+export async function logoutUser() {
+  return await signOut(auth);
 }
 
 // Subscribe to real-time equipment list

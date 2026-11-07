@@ -2,11 +2,24 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function isValidString(val, maxLen) {
-      return val is string && val.size() <= maxLen;
+    function isSignedIn() {
+      return request.auth != null;
     }
 
-    // Equipment collection: Public/Staff can view equipment catalog
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.uid == 'qhn0gWsCoAoQkCjfTGEA' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    // Admins collection: managed by super admin
+    match /admins/{adminId} {
+      allow read: if true;
+      allow write: if isAdmin() || (isSignedIn() && request.auth.uid == 'qhn0gWsCoAoQkCjfTGEA');
+    }
+
+    // Equipment collection: Public/Staff can view equipment catalog, admin and staff can manage
     match /equipment/{equipmentId} {
       allow read: if true;
       allow create, update, delete: if true;

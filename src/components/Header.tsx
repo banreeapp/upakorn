@@ -11,12 +11,15 @@ import {
   Menu,
   X,
   Stethoscope,
+  Crown,
+  Key,
 } from 'lucide-react';
 import { AppUser } from '../types';
+import { SUPER_ADMIN_UID } from '../services/dbService';
 
 interface HeaderProps {
-  activeTab: 'overview' | 'loans' | 'equipment' | 'new_loan' | 'audit';
-  setActiveTab: (tab: 'overview' | 'loans' | 'equipment' | 'new_loan' | 'audit') => void;
+  activeTab: 'overview' | 'loans' | 'equipment' | 'new_loan' | 'audit' | 'admin';
+  setActiveTab: (tab: 'overview' | 'loans' | 'equipment' | 'new_loan' | 'audit' | 'admin') => void;
   currentUser: AppUser;
   setCurrentUser: React.Dispatch<React.SetStateAction<AppUser>>;
   pendingCount: number;
@@ -34,7 +37,13 @@ export const Header: React.FC<HeaderProps> = ({
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
   const toggleRole = () => {
-    if (currentUser.role === 'staff') {
+    if (currentUser.role === 'super_admin' || currentUser.uid === SUPER_ADMIN_UID) {
+      setCurrentUser({
+        role: 'staff',
+        name: 'พว. นฤมล ศรีสวัสดิ์',
+        department: 'งานบริการปฐมภูมิ รพ.ดอนพุด',
+      });
+    } else if (currentUser.role === 'staff') {
       setCurrentUser({
         role: 'public',
         name: 'ประชาชน / ญาติผู้ป่วย',
@@ -42,15 +51,17 @@ export const Header: React.FC<HeaderProps> = ({
       });
     } else {
       setCurrentUser({
-        role: 'staff',
-        name: 'พว. นฤมล ศรีสวัสดิ์',
-        department: 'งานบริการปฐมภูมิ รพ.ดอนพุด',
+        uid: SUPER_ADMIN_UID,
+        role: 'super_admin',
+        name: 'ผู้ดูแลระบบ อ.ดอนพุด (Super Admin)',
+        department: 'ศูนย์ประสานงานเทคโนโลยีสารสนเทศ อ.ดอนพุด',
+        isSuperAdmin: true,
       });
     }
   };
 
   interface NavItem {
-    id: 'overview' | 'loans' | 'equipment' | 'audit';
+    id: 'overview' | 'loans' | 'equipment' | 'audit' | 'admin';
     label: string;
     icon: React.ComponentType<{ className?: string }>;
     badge?: number;
@@ -65,7 +76,8 @@ export const Header: React.FC<HeaderProps> = ({
       badge: pendingCount > 0 ? pendingCount : undefined,
     },
     { id: 'equipment', label: 'คลังอุปกรณ์การแพทย์', icon: Package },
-    { id: 'audit', label: 'บันทึก PDPA & กิจกรรม', icon: Activity },
+    { id: 'audit', label: 'บันทึก PDPA', icon: Activity },
+    { id: 'admin', label: 'ผู้ดูแลระบบ', icon: Crown },
   ];
 
   return (
@@ -163,14 +175,26 @@ export const Header: React.FC<HeaderProps> = ({
             <div className="hidden sm:flex items-center border border-slate-200 rounded-xl p-1 bg-slate-50">
               <button
                 onClick={toggleRole}
-                className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg text-slate-700 hover:bg-white hover:shadow-xs transition"
-                title="คลิกเพื่อสลับบทบาท"
+                className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg transition ${
+                  currentUser.role === 'super_admin'
+                    ? 'bg-amber-100 text-amber-900 border border-amber-300 font-bold shadow-2xs'
+                    : 'text-slate-700 hover:bg-white hover:shadow-xs'
+                }`}
+                title="คลิกเพื่อสลับบทบาท (Super Admin / เจ้าหน้าที่ / ประชาชน)"
               >
-                <UserCheck className="w-3.5 h-3.5 text-teal-600" />
-                <span className="text-[11px] font-medium max-w-[120px] truncate">
-                  {currentUser.role === 'staff' ? 'จนท. รพ./รพ.สต.' : 'ประชาชน'}
+                {currentUser.role === 'super_admin' ? (
+                  <Crown className="w-3.5 h-3.5 text-amber-600" />
+                ) : (
+                  <UserCheck className="w-3.5 h-3.5 text-teal-600" />
+                )}
+                <span className="text-[11px] font-medium max-w-[130px] truncate">
+                  {currentUser.role === 'super_admin'
+                    ? '👑 Super Admin'
+                    : currentUser.role === 'staff'
+                    ? 'จนท. รพ./รพ.สต.'
+                    : 'ประชาชน'}
                 </span>
-                <span className="text-[9px] bg-slate-200 text-slate-600 px-1 rounded">
+                <span className="text-[9px] bg-slate-200/80 text-slate-600 px-1 rounded">
                   สลับ
                 </span>
               </button>

@@ -76,9 +76,25 @@
         "timestamp": { "type": "string" }
       },
       "required": ["action", "details", "actorName", "timestamp"]
+    },
+    "admin": {
+      "title": "AdminUser",
+      "description": "System administrator user record for Don Phut medical equipment system",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "name": { "type": "string", "maxLength": 100 },
+        "role": { "type": "string", "enum": ["admin", "super_admin"] },
+        "assignedAt": { "type": "string" }
+      },
+      "required": ["uid", "role"]
     }
   },
   "firestore": {
+    "/admins/{adminId}": {
+      "schema": { "$ref": "admin" },
+      "description": "Collection of system administrator accounts"
+    },
     "/equipment/{equipmentId}": {
       "schema": { "$ref": "equipment" },
       "description": "Collection of medical equipment available for loan"

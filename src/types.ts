@@ -91,8 +91,18 @@ export interface AuditLog {
   timestamp: string;
 }
 
+export interface AdminRecord {
+  uid: string;
+  name: string;
+  role: 'super_admin' | 'admin';
+  assignedAt: string;
+}
+
 export interface AppUser {
-  role: 'admin' | 'staff' | 'public';
+  uid?: string;
+  email?: string;
+  role: 'super_admin' | 'admin' | 'staff' | 'public';
   name: string;
   department: string;
+  isSuperAdmin?: boolean;
 }
