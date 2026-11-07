@@ -1,0 +1,95 @@
+{
+  "entities": {
+    "equipment": {
+      "title": "MedicalEquipment",
+      "description": "Medical equipment available for loan to patients in Don Phut District",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "code": { "type": "string", "maxLength": 50 },
+        "name": { "type": "string", "maxLength": 150 },
+        "category": { "type": "string", "maxLength": 50 },
+        "status": { "type": "string", "enum": ["available", "borrowed", "maintenance", "reserved"] },
+        "serialNumber": { "type": "string", "maxLength": 100 },
+        "condition": { "type": "string", "maxLength": 100 },
+        "location": { "type": "string", "maxLength": 150 },
+        "notes": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["code", "name", "category", "status", "location"]
+    },
+    "loan": {
+      "title": "LoanRequest",
+      "description": "Loan, approval, delivery, and return record for patient medical equipment",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "requestNo": { "type": "string", "maxLength": 50 },
+        "equipmentId": { "type": "string", "maxLength": 128 },
+        "equipmentName": { "type": "string", "maxLength": 150 },
+        "equipmentCode": { "type": "string", "maxLength": 50 },
+        "category": { "type": "string", "maxLength": 50 },
+        "status": { "type": "string", "enum": ["pending_approval", "approved", "delivered", "returned", "rejected"] },
+        "patientName": { "type": "string", "maxLength": 150 },
+        "patientIdCard": { "type": "string", "maxLength": 20 },
+        "patientAge": { "type": "number" },
+        "patientGender": { "type": "string", "maxLength": 20 },
+        "patientDiagnosis": { "type": "string", "maxLength": 300 },
+        "patientAddress": { "type": "string", "maxLength": 300 },
+        "subdistrict": { "type": "string", "enum": ["ดอนพุด", "ดงน้อย", "บ้านหลวง", "ไผ่หลิ่ว"] },
+        "caregiverName": { "type": "string", "maxLength": 150 },
+        "caregiverRelation": { "type": "string", "maxLength": 80 },
+        "caregiverPhone": { "type": "string", "maxLength": 30 },
+        "caregiverIdCard": { "type": "string", "maxLength": 20 },
+        "requestDate": { "type": "string" },
+        "expectedReturnDate": { "type": "string" },
+        "approvedBy": { "type": "string", "maxLength": 100 },
+        "approvalDate": { "type": "string" },
+        "approvalNotes": { "type": "string", "maxLength": 500 },
+        "rejectionReason": { "type": "string", "maxLength": 500 },
+        "deliveredBy": { "type": "string", "maxLength": 100 },
+        "deliveryDate": { "type": "string" },
+        "receivedBy": { "type": "string", "maxLength": 100 },
+        "deliveryConditionNotes": { "type": "string", "maxLength": 500 },
+        "signatureDataUrl": { "type": "string", "maxLength": 50000 },
+        "returnedBy": { "type": "string", "maxLength": 100 },
+        "returnDate": { "type": "string" },
+        "receivedReturnBy": { "type": "string", "maxLength": 100 },
+        "returnCondition": { "type": "string", "maxLength": 100 },
+        "returnNotes": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["requestNo", "equipmentId", "equipmentName", "status", "patientName", "patientIdCard", "subdistrict", "caregiverName", "caregiverPhone", "requestDate"]
+    },
+    "auditLog": {
+      "title": "AuditLog",
+      "description": "Log of actions taken on loans or equipment for PDPA compliance and audit trail",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "action": { "type": "string", "maxLength": 80 },
+        "details": { "type": "string", "maxLength": 500 },
+        "actorName": { "type": "string", "maxLength": 100 },
+        "loanId": { "type": "string", "maxLength": 128 },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["action", "details", "actorName", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/equipment/{equipmentId}": {
+      "schema": { "$ref": "equipment" },
+      "description": "Collection of medical equipment available for loan"
+    },
+    "/loans/{loanId}": {
+      "schema": { "$ref": "loan" },
+      "description": "Collection of loan requests, active loans, and returns"
+    },
+    "/auditLogs/{logId}": {
+      "schema": { "$ref": "auditLog" },
+      "description": "Audit trail logs for administrative and security tracking"
+    }
+  }
+}

@@ -1,0 +1,38 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isValidString(val, maxLen) {
+      return val is string && val.size() <= maxLen;
+    }
+
+    // Equipment collection: Public/Staff can view equipment catalog
+    match /equipment/{equipmentId} {
+      allow read: if true;
+      allow create, update, delete: if true;
+    }
+
+    // Loans collection: Loan requests, delivery, and returns
+    match /loans/{loanId} {
+      allow read: if true;
+      allow create, update, delete: if true;
+    }
+
+    // Audit logs for PDPA tracking and operational transparency
+    match /auditLogs/{logId} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if false;
+    }
+
+    // Test connection document
+    match /test/{docId} {
+      allow read, write: if true;
+    }
+
+    // Default deny for everything else
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

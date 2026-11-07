@@ -1,0 +1,6 @@
+{
+  "name": "ระบบยืมคืนอุปกรณ์ อ.ดอนพุด",
+  "description": "ระบบบริหารจัดการการยืม การอนุมัติ การส่งมอบ และการรับคืนอุปกรณ์การแพทย์สำหรับผู้ป่วย อำเภอดอนพุด จังหวัดสระบุรี",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
